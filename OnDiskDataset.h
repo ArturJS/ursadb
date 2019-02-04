@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "DebugEntry.h"
 #include "Core.h"
 #include "OnDiskIndex.h"
 #include "Query.h"
@@ -19,18 +20,18 @@ class OnDiskDataset {
     std::vector<OnDiskIndex> indices;
 
     const std::string &get_file_name(FileId fid) const;
-    QueryResult query_str(const QString &str) const;
-    QueryResult internal_execute(const Query &query) const;
+    QueryResult query_str(const QString &str, DebugStack &debugStack, unsigned long debugParentOrdinal) const;
+    QueryResult internal_execute(const Query &query, DebugStack &debugStack, unsigned long debugParentOrdinal) const;
     const OnDiskIndex &get_index_with_type(IndexType index_type) const;
     void drop_file(const std::string &fname) const;
-    QueryResult pick_common(int cutoff, const std::vector<Query> &queries) const;
+    QueryResult pick_common(int cutoff, const std::vector<Query> &queries, DebugStack &debugStack, unsigned long debugParentOrdinal) const;
 
   public:
     explicit OnDiskDataset(const fs::path &db_base, const std::string &fname);
     const std::string &get_name() const;
     fs::path get_base() const;
     const std::vector<std::string> &indexed_files() const { return fnames; }
-    void execute(const Query &query, std::vector<std::string> *out) const;
+    void execute(const Query &query, std::vector<std::string> *out, DebugStack &debugStack, unsigned long debugParentOrdinal) const;
     static void
     merge(const fs::path &db_base, const std::string &outname,
           const std::vector<const OnDiskDataset *> &datasets, Task *task);

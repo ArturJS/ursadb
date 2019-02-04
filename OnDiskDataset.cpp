@@ -3,6 +3,7 @@
 #include <fstream>
 #include <set>
 
+#include "DebugEntry.h"
 #include "Database.h"
 #include "Query.h"
 #include "Json.h"
@@ -32,7 +33,7 @@ OnDiskDataset::OnDiskDataset(const fs::path &db_base, const std::string &fname)
 
 const std::string &OnDiskDataset::get_file_name(FileId fid) const { return fnames.at(fid); }
 
-QueryResult OnDiskDataset::query_str(const QString &str) const {
+QueryResult OnDiskDataset::query_str(const QString &str, DebugStack &debugStack, unsigned long debugParentOrdinal) const {
     QueryResult result = QueryResult::everything();
 
     for (auto &ndx : indices) {
@@ -90,7 +91,7 @@ std::vector<FileId> internal_pick_common(int cutoff, const std::vector<const std
     return result;
 }
 
-QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &queries) const {
+QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &queries, DebugStack &debugStack, unsigned long debugParentOrdinal) const {
     if (cutoff > static_cast<int>(queries.size())) {
         // Short circuit when cutoff is too big.
         // This should never happen for well-formed queries, but this check is very cheap.
@@ -103,7 +104,7 @@ QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &que
 
     std::vector<QueryResult> sources_storage;
     for (auto &query : queries) {
-        QueryResult result = internal_execute(query);
+        QueryResult result = internal_execute(query, debugStack, debugParentOrdinal);
         if (result.is_everything()) {
             cutoff -= 1;
             if (cutoff <= 0) {
@@ -131,26 +132,37 @@ QueryResult OnDiskDataset::pick_common(int cutoff, const std::vector<Query> &que
 }
 
 
-QueryResult OnDiskDataset::internal_execute(const Query &query) const {
+QueryResult OnDiskDataset::internal_execute(const Query &query, DebugStack &debugStack, unsigned long debugParentOrdinal) const {
+    unsigned long ordinal = debugStack.start(&query, debugParentOrdinal);
+
     switch (query.get_type()) {
-        case QueryType::PRIMITIVE:
-            return query_str(query.as_value());
+        case QueryType::PRIMITIVE: {
+            QueryResult qr = query_str(query.as_value(), debugStack, ordinal);
+            debugStack.stop(ordinal);
+            return qr;
+        }
         case QueryType::OR: {
-            return pick_common(1, query.as_queries());
+            QueryResult qr = pick_common(1, query.as_queries(), debugStack, ordinal);
+            debugStack.stop(ordinal);
+            return qr;
         }
         case QueryType::AND: {
-            return pick_common(query.as_queries().size(), query.as_queries());
+            QueryResult qr = pick_common(query.as_queries().size(), query.as_queries(), debugStack, ordinal);
+            debugStack.stop(ordinal);
+            return qr;
         }
         case QueryType::MIN_OF: {
-            return pick_common(query.as_count(), query.as_queries());
+            QueryResult qr = pick_common(query.as_count(), query.as_queries(), debugStack, ordinal);
+            debugStack.stop(ordinal);
+            return qr;
         }
     }
 
     throw std::runtime_error("unhandled query type");
 }
 
-void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out) const {
-    QueryResult result = internal_execute(query);
+void OnDiskDataset::execute(const Query &query, std::vector<std::string> *out, DebugStack &debugStack, unsigned long debugParentOrdinal) const {
+    QueryResult result = internal_execute(query, debugStack, debugParentOrdinal);
     if (result.is_everything()) {
         std::copy(fnames.begin(), fnames.end(), std::back_inserter(*out));
     } else {

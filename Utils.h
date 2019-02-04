@@ -65,3 +65,5 @@ void store_dataset(
         const std::vector<std::string> &fids);
 
 std::string bin_str_to_hex(const std::string& str);
+
+long get_time_ns();

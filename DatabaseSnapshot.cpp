@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "DebugEntry.h"
 #include "Database.h"
 #include "DatasetBuilder.h"
 #include "ExclusiveFile.h"
@@ -128,12 +129,27 @@ std::string DatabaseSnapshot::allocate_name() const {
 }
 
 void DatabaseSnapshot::execute(const Query &query, Task *task, std::vector<std::string> *out) const {
+    DebugStack debugStack;
+    unsigned long ordinal = debugStack.start(&query, 0);
     task->work_estimated = datasets.size();
 
     for (const auto &ds : datasets) {
-        ds->execute(query, out);
+        ds->execute(query, out, debugStack, 0);
         task->work_done += 1;
     }
+
+    debugStack.stop(ordinal);
+
+    std::cout << "--- BEGIN PROFILING ---" << std::endl;
+
+    int ord = 0;
+    for (auto &d : debugStack.entries()) {
+        std::chrono::nanoseconds diff = d.end_time - d.start_time;
+        std::cout << d.parent_ordinal << " " << ord << " " << " " << diff.count() << " " << (*d.query) << std::endl;
+        ++ord;
+    }
+
+    std::cout << "--- END PROFILING ---" << std::endl;
 }
 
 void DatabaseSnapshot::smart_compact(Task *task) const {
