@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     bool dry_run = true;
 
     if (argc != 2 && argc != 3) {
-        std::cout << "Usage: ursadb_cleanup [db_file]\n" << std::endl;
+        std::cout << "Usage: " << argv[0] << " [db_file]\n" << std::endl;
         return 1;
     }
 
