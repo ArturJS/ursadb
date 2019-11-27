@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     bool dry_run = true;
 
     if (argc != 2 && argc != 3) {
-        printf("Usage: ursadb_cleanup [db_file]\n");
+        std::cout << "Usage: ursadb_cleanup [db_file]\n" << std::endl;
         return 1;
     }
 
@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[1], "--confirm") == 0) {
             dry_run = false;
         } else {
-            printf("Invalid parameters.\n");
+            std::cout << "Invalid parameters." << std::endl;
             return 1;
         }
     }
@@ -44,9 +44,7 @@ int main(int argc, char *argv[]) {
 
     for (OnDiskDataset *workingSet : db.working_sets()) {
         db_files.insert(workingSet->get_name());
-
-        db_files.insert("files." + workingSet->get_name());
-        db_files.insert("ndx.files." + workingSet->get_name());
+        db_files.insert(workingSet->get_files_fname());
 
         for (const OnDiskIndex &index : workingSet->get_indexes()) {
             db_files.insert(index.get_fname());
@@ -82,7 +80,7 @@ int main(int argc, char *argv[]) {
 
     if (dry_run) {
         std::cout << "in order to really remove unlinked files, execute:" << std::endl;
-        std::cout << "    ursadb_cleanup --confirm " + db_name << std::endl;
+        std::cout << "    " << argv[0] << " --confirm '" + db_name << "'" << std::endl;
         std::cout << "be warned that executing this command is not safe it UrsaDB is running" << std::endl;
     }
 
