@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
     if (dry_run) {
         std::cout << "in order to really remove unlinked files, execute:" << std::endl;
         std::cout << "    " << argv[0] << " --confirm '" + db_name << "'" << std::endl;
-        std::cout << "be warned that executing this command is not safe it UrsaDB is running" << std::endl;
+        std::cout << "WARNING: doing this while UrsaDB is running is strongly discouraged and may lead to data loss" << std::endl;
     }
 
     if (!remove_list.size()) {
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
             std::cout << "delete " << fs::absolute(fn).string();
 
             if (fs::remove(fn)) {
-                std::cout << " OK" << std::endl;
+                std::cout << " REMOVED" << std::endl;
             } else {
                 std::cout << " FAILED" << std::endl;
             }
